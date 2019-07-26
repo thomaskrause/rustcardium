@@ -5,11 +5,26 @@ enum State {
     Closed,
 }
 
+/// The display class provides methods to allow the lcd display
+/// in card10 to be used in a safe way. 
+/// 
+/// You can close the display manually, or it will automatically be closed when the variable gets out of scope.
+/// 
+/// # Example
+/// ```
+/// if let Ok(display) = epicardium::Display::open() {
+///     let color_black = epicardium::Color {r: 0, g: 0, b: 0};
+///     let color_white = epicardium::Color {r: 255, g: 255, b: 255};
+/// 
+///     display.print("Hello World", 0, 0, black, white).unwrap();
+/// }
+/// ```
 pub struct Display {
     state: State,
 }
 
 impl Display {
+    /// Opens the display. Will fail if the display can't be locked
     pub fn open() -> Result<Display> {
         unsafe {
             let result = epic_disp_open();
@@ -22,6 +37,8 @@ impl Display {
         })
     }
 
+    /// Closes and unlocks the display.
+    /// To be able to use it again, it is necessary to open and lock it again with Display.open()
     pub fn close(&mut self) {
         match self.state {
             State::Opened => {
@@ -36,6 +53,29 @@ impl Display {
         }
     }
 
+    /// Updates the display based on the changes previously made by various draw functions
+    pub fn update(&self) -> Result<()> {
+        match self.state {
+            State::Closed => {
+                return Err(Error::DisplayClosed);
+            }
+            State::Opened => unsafe {
+                let result = epic_disp_update();
+                if result != 0 {
+                    return Err(Error::DeviceOrResourceBusy);
+                }
+            },
+        }
+        Ok(())
+    }
+
+    /// Prints a string on the display. Font size is locked to 20px
+    /// 
+    /// - `text` - Text to print
+    /// - `fg` - Foreground color
+    /// - `bg` - Background color
+    /// - `posx` - X-Position of the first character, 0 <= posx <= 160
+    /// - `posy` - Y-Position of the first character, 0 <= posy <= 80
     pub fn print(&self, text: &str, fg: Color, bg: Color, posx: u16, posy: u16) -> Result<()> {
         match self.state {
             State::Closed => {

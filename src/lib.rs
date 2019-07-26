@@ -4,14 +4,18 @@ mod display;
 
 pub use display::Display;
 
+type CInt = i32;
+
 #[link(name="api-caller", kind="static")]
 #[link(name="PeriphDriver", kind="static")]
 extern "C" {
-    fn epic_disp_open() -> i32;
-    fn epic_disp_close() -> i32;
-    fn epic_disp_print(posx : u16, posy : u16, pString :  *const u8, fg : u16, bg : u16) -> i32;
+    fn epic_disp_open() -> CInt;
+    fn epic_disp_close() -> CInt;
+    fn epic_disp_print(posx : u16, posy : u16, pString :  *const u8, fg : u16, bg : u16) -> CInt;
+    fn epic_disp_update() -> CInt;
 }
 
+/// Representation of a RGB color value.
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -32,9 +36,11 @@ impl Color {
 }
 
 
+/// Custom error variants for Epicardium.
 #[derive(Debug)]
 pub enum Error {
     DisplayClosed,
+    OutsideDisplay,
     DeviceOrResourceBusy
 }
 
