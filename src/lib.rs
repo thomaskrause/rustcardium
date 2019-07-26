@@ -5,6 +5,8 @@ pub mod display;
 #[link(name="api-caller", kind="static")]
 #[link(name="PeriphDriver", kind="static")]
 extern "C" {
+    fn epic_disp_open() -> i32;
+    fn epic_disp_close() -> i32;
     fn epic_disp_print(posx : u16, posy : u16, pString :  *const u8, fg : u16, bg : u16) -> i32;
 }
 
