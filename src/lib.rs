@@ -3,6 +3,7 @@
 mod display;
 
 pub use display::Display;
+use arrayvec::ArrayString;
 
 type CInt = i32;
 
@@ -34,6 +35,16 @@ impl Color {
         let result2 = (r5 << 3) | ((g6 & 0b111000) >> 3);
 
         ((result1 as u16) << 8) | (result2 as u16)
+    }
+}
+
+fn create_nullterminated_str(text : &str) -> ArrayString<[u8; 1024]> {
+    if text.len() < 1024 && text.ends_with("\0") {
+        return ArrayString::from(text).unwrap();
+    } else {
+        let mut new_text = ArrayString::from(&text[0..core::cmp::min(1023, text.len())]).unwrap();
+        new_text.push('\0');
+        return new_text;
     }
 }
 

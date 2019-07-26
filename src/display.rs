@@ -100,6 +100,7 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
+                let text = create_nullterminated_str(text);
                 let result = epic_disp_print(posx, posy, text.as_ptr(), fg.rgb565(), bg.rgb565());
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
@@ -113,7 +114,7 @@ impl Display {
     ///
     /// `x` - X coordinate, 0<= x <= 160
     /// `y` - Y coordinate, 0<= y <= 80
-    /// `col` - color of the pixe
+    /// `col` - color of the pixel
     pub fn pixel(&self, x: u16, y: u16, col : Color) -> Result<()> {
         if x > 160 || y > 80 {
             return Err(Error::OutsideDisplay);
