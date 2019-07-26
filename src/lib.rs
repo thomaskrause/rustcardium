@@ -1,6 +1,8 @@
 #![no_std]
 
-pub mod display;
+mod display;
+
+pub use display::Display;
 
 #[link(name="api-caller", kind="static")]
 #[link(name="PeriphDriver", kind="static")]
@@ -32,6 +34,7 @@ impl Color {
 
 #[derive(Debug)]
 pub enum Error {
+    DisplayClosed,
     DeviceOrResourceBusy
 }
 
