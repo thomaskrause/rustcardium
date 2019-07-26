@@ -1,3 +1,5 @@
+#![no_std]
+
 pub mod display;
 
 #[link(name="api-caller", kind="static")]
