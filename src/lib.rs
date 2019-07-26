@@ -11,6 +11,7 @@ type CInt = i32;
 extern "C" {
     fn epic_disp_open() -> CInt;
     fn epic_disp_close() -> CInt;
+    fn epic_disp_clear(color : u16) -> CInt;
     fn epic_disp_print(posx : u16, posy : u16, pString :  *const u8, fg : u16, bg : u16) -> CInt;
     fn epic_disp_update() -> CInt;
 }

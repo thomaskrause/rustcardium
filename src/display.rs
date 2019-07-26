@@ -6,16 +6,16 @@ enum State {
 }
 
 /// The display class provides methods to allow the lcd display
-/// in card10 to be used in a safe way. 
-/// 
+/// in card10 to be used in a safe way.
+///
 /// You can close the display manually, or it will automatically be closed when the variable gets out of scope.
-/// 
+///
 /// # Example
 /// ```
 /// if let Ok(display) = epicardium::Display::open() {
 ///     let color_black = epicardium::Color {r: 0, g: 0, b: 0};
 ///     let color_white = epicardium::Color {r: 255, g: 255, b: 255};
-/// 
+///
 ///     display.print("Hello World", 0, 0, black, white).unwrap();
 /// }
 /// ```
@@ -69,8 +69,26 @@ impl Display {
         Ok(())
     }
 
+    /// Clears the display using the color provided, or the default color black.
+    ///
+    /// `col` - Clearing color
+    pub fn clear(&self, col: Option<Color>) -> Result<()> {
+        match self.state {
+            State::Closed => {
+                return Err(Error::DisplayClosed);
+            }
+            State::Opened => unsafe {
+                let result = epic_disp_clear(col.unwrap_or(Color { r: 0, g: 0, b: 0 }).rgb565());
+                if result != 0 {
+                    return Err(Error::DeviceOrResourceBusy);
+                }
+            },
+        }
+        Ok(())
+    }
+
     /// Prints a string on the display. Font size is locked to 20px
-    /// 
+    ///
     /// - `text` - Text to print
     /// - `fg` - Foreground color
     /// - `bg` - Background color
