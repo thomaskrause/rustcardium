@@ -108,6 +108,30 @@ impl Display {
         }
         Ok(())
     }
+
+    /// Draws a pixel on the display
+    ///
+    /// `x` - X coordinate, 0<= x <= 160
+    /// `y` - Y coordinate, 0<= y <= 80
+    /// `col` - color of the pixe
+    pub fn pixel(&self, x: u16, y: u16, col : Color) -> Result<()> {
+        if x > 160 || y > 80 {
+            return Err(Error::OutsideDisplay);
+        }
+
+        match self.state {
+            State::Closed => {
+                return Err(Error::DisplayClosed);
+            }
+            State::Opened => unsafe {
+                let result = epic_disp_pixel(x, y, col.rgb565());
+                if result != 0 {
+                    return Err(Error::DeviceOrResourceBusy);
+                }
+            },
+        }
+        Ok(())
+    }
 }
 
 impl Drop for Display {
