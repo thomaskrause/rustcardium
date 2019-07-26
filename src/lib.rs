@@ -35,10 +35,3 @@ pub enum Error {
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
