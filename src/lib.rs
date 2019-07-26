@@ -30,7 +30,7 @@ impl Color {
 
 #[derive(Debug)]
 pub enum Error {
-    EBUSY
+    DeviceOrResourceBusy
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
