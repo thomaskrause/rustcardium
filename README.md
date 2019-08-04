@@ -3,7 +3,7 @@
 **Experimental and unfinished, _not even tested on the actual hardware yet!_**
 
 This is Rust crate intends to make the [Epicardium API](https://firmware.card10.badge.events.ccc.de/epicardium/overview.html) for your CCC Camp 2019 wristband [card10](https://git.card10.badge.events.ccc.de/card10) available to Rust.
-Its **WORK IN PROGRESS** API should be similar to the Python-API and the goal is to make it easier to create your own [l0adable](https://firmware.card10.badge.events.ccc.de/overview.html#l0dables) by using a quickstart/template project based on the [cortex-m](https://github.com/rust-embedded/cortex-m) crates and cross-compiling it.
+Its **WORK IN PROGRESS** API should be similar to the [Python-API](https://firmware.card10.badge.events.ccc.de/pycardium/overview.html) and the goal is to make it easier to create your own [l0adable](https://firmware.card10.badge.events.ccc.de/overview.html#l0dables) by using a quickstart/template project based on the [cortex-m](https://github.com/rust-embedded/cortex-m) crates and cross-compiling it.
 
 ## Modules progress
 
