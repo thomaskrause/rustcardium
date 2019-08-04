@@ -5,7 +5,7 @@ enum State {
     Closed,
 }
 
-/// The display class provides methods to allow the lcd display
+/// The display struct provides methods to allow the lcd display
 /// in card10 to be used in a safe way.
 ///
 /// You can close the display manually, or it will automatically be closed when the variable gets out of scope.
