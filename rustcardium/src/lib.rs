@@ -5,18 +5,6 @@ mod display;
 pub use display::Display;
 use arrayvec::ArrayString;
 
-type CInt = i32;
-
-#[link(name="api-caller", kind="static")]
-#[link(name="PeriphDriver", kind="static")]
-extern "C" {
-    fn epic_disp_open() -> CInt;
-    fn epic_disp_close() -> CInt;
-    fn epic_disp_clear(color : u16) -> CInt;
-    fn epic_disp_print(posx : u16, posy : u16, pString :  *const u8, fg : u16, bg : u16) -> CInt;
-    fn epic_disp_pixel(x : u16, y : u16, color : u16) -> CInt;
-    fn epic_disp_update() -> CInt;
-}
 
 /// Representation of a RGB color value.
 pub struct Color {

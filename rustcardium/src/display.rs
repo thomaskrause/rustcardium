@@ -27,7 +27,7 @@ impl Display {
     /// Opens the display. Will fail if the display can't be locked
     pub fn open() -> Result<Display> {
         unsafe {
-            let result = epic_disp_open();
+            let result = epicardium_sys::epic_disp_open();
             if result != 0 {
                 return Err(Error::DeviceOrResourceBusy);
             }
@@ -46,7 +46,7 @@ impl Display {
                 self.state = State::Closed;
 
                 unsafe {
-                    epic_disp_close();
+                    epicardium_sys::epic_disp_close();
                 }
             }
             State::Closed => {}
@@ -60,7 +60,7 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
-                let result = epic_disp_update();
+                let result = epicardium_sys::epic_disp_update();
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -78,7 +78,7 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
-                let result = epic_disp_clear(col.unwrap_or(Color { r: 0, g: 0, b: 0 }).rgb565());
+                let result = epicardium_sys::epic_disp_clear(col.unwrap_or(Color { r: 0, g: 0, b: 0 }).rgb565());
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -101,7 +101,7 @@ impl Display {
             }
             State::Opened => unsafe {
                 let text = create_nullterminated_str(text);
-                let result = epic_disp_print(posx, posy, text.as_ptr(), fg.rgb565(), bg.rgb565());
+                let result = epicardium_sys::epic_disp_print(posx, posy, text.as_ptr() as *const i8, fg.rgb565(), bg.rgb565());
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -125,7 +125,7 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
-                let result = epic_disp_pixel(x, y, col.rgb565());
+                let result = epicardium_sys::epic_disp_pixel(x, y, col.rgb565());
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }

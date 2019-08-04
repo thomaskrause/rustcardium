@@ -1,8 +1,6 @@
-[package]
-name = "rustcardium"
-version = "0.1.0"
-authors = ["Thomas Krause <thomaskrause@posteo.de>"]
-edition = "2018"
+[workspace]
+members = [
+    "rustcardium",
+    "epicardium-sys",
 
-[dependencies]
-arrayvec = {version = "0.4", default-features = false}
+]

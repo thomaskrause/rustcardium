@@ -1,0 +1,15 @@
+[package]
+name = "epicardium-sys"
+version = "0.1.0"
+authors = ["Thomas Krause <thomaskrause@posteo.de>"]
+edition = "2018"
+links = "api-caller"
+build = "build.rs"  
+
+[dependencies]
+cty = "0.2"
+
+[build-dependencies]
+bindgen = "0.51"
+
+
