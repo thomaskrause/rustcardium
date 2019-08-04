@@ -33,7 +33,7 @@ and open the resulting file `target/doc/rustcardium/index.html`.
 3. Use the following configuration in the `memory.x` file
     - FLASH : ORIGIN = **0x10080000**, LENGTH = **512K**
     - RAM : ORIGIN = **0x20040000**, LENGTH = **256K**
-4. Add this crate as dependency, you can use this git repository until it might be published on crates.io
+4. Add this crate as dependency. You can use this git repository until it might be published on crates.io
 ```toml
 [dependencies]
 rustcardium = { git = "https://github.com/thomaskrause/rustcardium" }
