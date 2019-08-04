@@ -7,7 +7,7 @@ Its **WORK IN PROGRESS** API should be similar to the Python-API and the goal is
 
 ## Modules progress
 
-Epicardium has several modules which need to be wrapped. The low-level C bindings in the `epicardium-sys` crate are automatically generated with [bindgen](https://github.com/rust-lang/rust-bindgen), but these should also be wrapped in a nicer, more Rust-like API. **A checkbox here means the code is implemented, not that it has ever been tested to actually work**
+Epicardium has several modules which need to be wrapped. The low-level C bindings in the `epicardium-sys` crate are automatically generated with [bindgen](https://github.com/rust-lang/rust-bindgen), but these should also be wrapped in a nicer, more Rust-like API. **A checkbox here means the code is implemented, not that it has ever been tested if its actually working on the device**.
 
 - [X] display
 - [ ] leds
