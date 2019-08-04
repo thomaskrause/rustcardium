@@ -12,9 +12,9 @@ enum State {
 ///
 /// # Example
 /// ```
-/// if let Ok(display) = epicardium::Display::open() {
-///     let color_black = epicardium::Color {r: 0, g: 0, b: 0};
-///     let color_white = epicardium::Color {r: 255, g: 255, b: 255};
+/// if let Ok(display) = rustcardium::Display::open() {
+///     let color_black = rustcardium::Color {r: 0, g: 0, b: 0};
+///     let color_white = rustcardium::Color {r: 255, g: 255, b: 255};
 ///
 ///     display.print("Hello World", 0, 0, black, white).unwrap();
 /// }
@@ -120,9 +120,9 @@ impl Display {
 
     /// Draws a pixel on the display
     ///
-    /// `x` - X coordinate, 0<= x <= 160
-    /// `y` - Y coordinate, 0<= y <= 80
-    /// `col` - color of the pixel
+    /// - `x` - X coordinate, 0<= x <= 160
+    /// - `y` - Y coordinate, 0<= y <= 80
+    /// - `col` - color of the pixel
     pub fn pixel(&self, x: u16, y: u16, col: Color) -> Result<()> {
         if x > 160 || y > 80 {
             return Err(Error::OutsideDisplay);
@@ -144,13 +144,13 @@ impl Display {
 
     /// Draws a line on the display.
     ///
-    /// `xs` - X start coordinate, 0<= x <= 160
-    /// `ys` - Y start coordinate, 0<= y <= 80
-    /// `xe` - X end coordinate, 0<= x <= 160
-    /// `ye` - Y end coordinate, 0<= y <= 80
-    /// `col` - color of the line
-    /// `dotted` - whether the line should be dotted or not (questionable implementation: draws every other pixel white, draws white squares at higher pixel sizes)
-    /// `size` - size of the individual pixels, ranges from 1 to 8
+    /// - `xs` - X start coordinate, 0<= x <= 160
+    /// - `ys` - Y start coordinate, 0<= y <= 80
+    /// - `xe` - X end coordinate, 0<= x <= 160
+    /// - `ye` - Y end coordinate, 0<= y <= 80
+    /// - `col` - color of the line
+    /// - `dotted` - whether the line should be dotted or not (questionable implementation: draws every other pixel white, draws white squares at higher pixel sizes)
+    /// - `size` - size of the individual pixels, ranges from 1 to 8
     pub fn line(
         &self,
         xs: u16,
@@ -187,13 +187,13 @@ impl Display {
 
     /// Draws a rectangle on the display.
     ///
-    /// `xs` - X start coordinate, 0<= x <= 160
-    /// `ys` - Y start coordinate, 0<= y <= 80
-    /// `xe` - X end coordinate, 0<= x <= 160
-    /// `ye` - Y end coordinate, 0<= y <= 80
-    /// `col` - color of the line
-    /// `filled` - whether the rectangle should be filled or not
-    /// `size` - size of the individual pixels, ranges from 1 to 8
+    /// - `xs` - X start coordinate, 0<= x <= 160
+    /// -`ys` - Y start coordinate, 0<= y <= 80
+    /// - `xe` - X end coordinate, 0<= x <= 160
+    /// - `ye` - Y end coordinate, 0<= y <= 80
+    /// - `col` - color of the line
+    /// - `filled` - whether the rectangle should be filled or not
+    /// - `size` - size of the individual pixels, ranges from 1 to 8
     pub fn rect(
         &self,
         xs: u16,
@@ -230,12 +230,12 @@ impl Display {
 
     /// Draws a circle on the display.
     ///
-    /// `x` - center x coordinate, 0 <= x <= 160
-    /// `y` - center y coordinate, 0 <= y <= 80
-    /// `rad` - radius
-    /// `col` - color of the line
-    /// `filled` - whether the rectangle should be filled or not
-    /// `size` - size of the individual pixels, ranges from 1 to 8
+    /// - `x` - center x coordinate, 0 <= x <= 160
+    /// - `y` - center y coordinate, 0 <= y <= 80
+    /// - `rad` - radius
+    /// - `col` - color of the line
+    /// - `filled` - whether the rectangle should be filled or not
+    /// - `size` - size of the individual pixels, ranges from 1 to 8
     pub fn circ(
         &self,
         x: u16,
