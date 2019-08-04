@@ -78,7 +78,9 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
-                let result = epicardium_sys::epic_disp_clear(col.unwrap_or(Color { r: 0, g: 0, b: 0 }).rgb565());
+                let result = epicardium_sys::epic_disp_clear(
+                    col.unwrap_or(Color { r: 0, g: 0, b: 0 }).rgb565(),
+                );
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -101,7 +103,13 @@ impl Display {
             }
             State::Opened => unsafe {
                 let text = create_nullterminated_str(text);
-                let result = epicardium_sys::epic_disp_print(posx, posy, text.as_ptr() as *const i8, fg.rgb565(), bg.rgb565());
+                let result = epicardium_sys::epic_disp_print(
+                    posx,
+                    posy,
+                    text.as_ptr() as *const i8,
+                    fg.rgb565(),
+                    bg.rgb565(),
+                );
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -115,7 +123,7 @@ impl Display {
     /// `x` - X coordinate, 0<= x <= 160
     /// `y` - Y coordinate, 0<= y <= 80
     /// `col` - color of the pixel
-    pub fn pixel(&self, x: u16, y: u16, col : Color) -> Result<()> {
+    pub fn pixel(&self, x: u16, y: u16, col: Color) -> Result<()> {
         if x > 160 || y > 80 {
             return Err(Error::OutsideDisplay);
         }
@@ -126,6 +134,133 @@ impl Display {
             }
             State::Opened => unsafe {
                 let result = epicardium_sys::epic_disp_pixel(x, y, col.rgb565());
+                if result != 0 {
+                    return Err(Error::DeviceOrResourceBusy);
+                }
+            },
+        }
+        Ok(())
+    }
+
+    /// Draws a line on the display.
+    ///
+    /// `xs` - X start coordinate, 0<= x <= 160
+    /// `ys` - Y start coordinate, 0<= y <= 80
+    /// `xe` - X end coordinate, 0<= x <= 160
+    /// `ye` - Y end coordinate, 0<= y <= 80
+    /// `col` - color of the line
+    /// `dotted` - whether the line should be dotted or not (questionable implementation: draws every other pixel white, draws white squares at higher pixel sizes)
+    /// `size` - size of the individual pixels, ranges from 1 to 8
+    pub fn line(
+        &self,
+        xs: u16,
+        ys: u16,
+        xe: u16,
+        ye: u16,
+        col: Color,
+        dotted: bool,
+        size: u16,
+    ) -> Result<()> {
+        if xs > 160 || ys > 80 || xe > 160 || ye > 80 {
+            return Err(Error::OutsideDisplay);
+        }
+
+        match self.state {
+            State::Closed => {
+                return Err(Error::DisplayClosed);
+            }
+            State::Opened => unsafe {
+                let linestyle = if dotted {
+                    epicardium_sys::disp_linestyle_LINESTYLE_FULL
+                } else {
+                    epicardium_sys::disp_linestyle_LINESTYLE_DOTTED
+                };
+                let result =
+                    epicardium_sys::epic_disp_line(xs, ys, ye, ye, col.rgb565(), linestyle, size);
+                if result != 0 {
+                    return Err(Error::DeviceOrResourceBusy);
+                }
+            },
+        }
+        Ok(())
+    }
+
+    /// Draws a rectangle on the display.
+    ///
+    /// `xs` - X start coordinate, 0<= x <= 160
+    /// `ys` - Y start coordinate, 0<= y <= 80
+    /// `xe` - X end coordinate, 0<= x <= 160
+    /// `ye` - Y end coordinate, 0<= y <= 80
+    /// `col` - color of the line
+    /// `filled` - whether the rectangle should be filled or not
+    /// `size` - size of the individual pixels, ranges from 1 to 8
+    pub fn rect(
+        &self,
+        xs: u16,
+        ys: u16,
+        xe: u16,
+        ye: u16,
+        col: Color,
+        filled: bool,
+        size: u16,
+    ) -> Result<()> {
+        if xs > 160 || ys > 80 || xe > 160 || ye > 80 {
+            return Err(Error::OutsideDisplay);
+        }
+
+        match self.state {
+            State::Closed => {
+                return Err(Error::DisplayClosed);
+            }
+            State::Opened => unsafe {
+                let fillstyle = if filled {
+                    epicardium_sys::disp_fillstyle_FILLSTYLE_FILLED
+                } else {
+                    epicardium_sys::disp_fillstyle_FILLSTYLE_EMPTY
+                };
+                let result =
+                    epicardium_sys::epic_disp_rect(xs, ys, ye, ye, col.rgb565(), fillstyle, size);
+                if result != 0 {
+                    return Err(Error::DeviceOrResourceBusy);
+                }
+            },
+        }
+        Ok(())
+    }
+
+    /// Draws a circle on the display.
+    ///
+    /// `x` - center x coordinate, 0 <= x <= 160
+    /// `y` - center y coordinate, 0 <= y <= 80
+    /// `rad` - radius
+    /// `col` - color of the line
+    /// `filled` - whether the rectangle should be filled or not
+    /// `size` - size of the individual pixels, ranges from 1 to 8
+    pub fn circ(
+        &self,
+        x: u16,
+        y: u16,
+        rad: u16,
+        col: Color,
+        filled: bool,
+        size: u16,
+    ) -> Result<()> {
+        if x > 160 || y > 80 {
+            return Err(Error::OutsideDisplay);
+        }
+
+        match self.state {
+            State::Closed => {
+                return Err(Error::DisplayClosed);
+            }
+            State::Opened => unsafe {
+                let fillstyle = if filled {
+                    epicardium_sys::disp_fillstyle_FILLSTYLE_FILLED
+                } else {
+                    epicardium_sys::disp_fillstyle_FILLSTYLE_EMPTY
+                };
+                let result =
+                    epicardium_sys::epic_disp_circ(x, y, rad, col.rgb565(), fillstyle, size);
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
