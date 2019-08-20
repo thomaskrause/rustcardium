@@ -106,7 +106,7 @@ impl Display {
                 let result = epicardium_sys::epic_disp_print(
                     posx,
                     posy,
-                    text.as_ptr() as *const i8,
+                    text.as_ptr(),
                     fg.rgb565(),
                     bg.rgb565(),
                 );
