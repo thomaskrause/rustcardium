@@ -1,8 +1,7 @@
 #![no_std]
 
-mod display;
+pub mod display;
 
-pub use display::Display;
 use arrayvec::ArrayString;
 
 
