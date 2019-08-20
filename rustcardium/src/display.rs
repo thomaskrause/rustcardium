@@ -71,7 +71,9 @@ impl Display {
 
     /// Clears the display using the color provided, or the default color black.
     ///
-    /// - `col` - Clearing color
+    /// # Arguments
+    ///
+    /// * `col` - Clearing color
     pub fn clear(&self, col: Option<Color>) -> Result<()> {
         match self.state {
             State::Closed => {
@@ -91,11 +93,12 @@ impl Display {
 
     /// Prints a string on the display. Font size is locked to 20px
     ///
-    /// - `text` - Text to print
-    /// - `fg` - Foreground color
-    /// - `bg` - Background color
-    /// - `posx` - X-Position of the first character, 0 <= posx <= 160
-    /// - `posy` - Y-Position of the first character, 0 <= posy <= 80
+    /// # Arguments
+    /// * `text` - Text to print
+    /// * `fg` - Foreground color
+    /// * `bg` - Background color
+    /// * `posx` - X-Position of the first character, 0 <= posx <= 160
+    /// * `posy` - Y-Position of the first character, 0 <= posy <= 80
     pub fn print(&self, text: &str, fg: Color, bg: Color, posx: u16, posy: u16) -> Result<()> {
         match self.state {
             State::Closed => {
@@ -120,9 +123,10 @@ impl Display {
 
     /// Draws a pixel on the display
     ///
-    /// - `x` - X coordinate, 0<= x <= 160
-    /// - `y` - Y coordinate, 0<= y <= 80
-    /// - `col` - color of the pixel
+    /// # Arguments
+    /// * `x` - X coordinate, 0<= x <= 160
+    /// * `y` - Y coordinate, 0<= y <= 80
+    /// * `col` - color of the pixel
     pub fn pixel(&self, x: u16, y: u16, col: Color) -> Result<()> {
         if x > 160 || y > 80 {
             return Err(Error::OutsideDisplay);
@@ -144,13 +148,14 @@ impl Display {
 
     /// Draws a line on the display.
     ///
-    /// - `xs` - X start coordinate, 0<= x <= 160
-    /// - `ys` - Y start coordinate, 0<= y <= 80
-    /// - `xe` - X end coordinate, 0<= x <= 160
-    /// - `ye` - Y end coordinate, 0<= y <= 80
-    /// - `col` - color of the line
-    /// - `dotted` - whether the line should be dotted or not (questionable implementation: draws every other pixel white, draws white squares at higher pixel sizes)
-    /// - `size` - size of the individual pixels, ranges from 1 to 8
+    /// # Arguments
+    /// * `xs` - X start coordinate, 0<= x <= 160
+    /// * `ys` - Y start coordinate, 0<= y <= 80
+    /// * `xe` - X end coordinate, 0<= x <= 160
+    /// * `ye` - Y end coordinate, 0<= y <= 80
+    /// * `col` - color of the line
+    /// * `dotted` - whether the line should be dotted or not (questionable implementation: draws every other pixel white, draws white squares at higher pixel sizes)
+    /// * `size` - size of the individual pixels, ranges from 1 to 8
     pub fn line(
         &self,
         xs: u16,
@@ -187,13 +192,15 @@ impl Display {
 
     /// Draws a rectangle on the display.
     ///
-    /// - `xs` - X start coordinate, 0<= x <= 160
-    /// -`ys` - Y start coordinate, 0<= y <= 80
-    /// - `xe` - X end coordinate, 0<= x <= 160
-    /// - `ye` - Y end coordinate, 0<= y <= 80
-    /// - `col` - color of the line
-    /// - `filled` - whether the rectangle should be filled or not
-    /// - `size` - size of the individual pixels, ranges from 1 to 8
+    /// # Arguments
+    ///
+    /// * `xs` - X start coordinate, 0<= x <= 160
+    /// *`ys` - Y start coordinate, 0<= y <= 80
+    /// * `xe` - X end coordinate, 0<= x <= 160
+    /// * `ye` - Y end coordinate, 0<= y <= 80
+    /// * `col` - color of the line
+    /// * `filled` - whether the rectangle should be filled or not
+    /// * `size` - size of the individual pixels, ranges from 1 to 8
     pub fn rect(
         &self,
         xs: u16,
@@ -230,12 +237,14 @@ impl Display {
 
     /// Draws a circle on the display.
     ///
-    /// - `x` - center x coordinate, 0 <= x <= 160
-    /// - `y` - center y coordinate, 0 <= y <= 80
-    /// - `rad` - radius
-    /// - `col` - color of the line
-    /// - `filled` - whether the rectangle should be filled or not
-    /// - `size` - size of the individual pixels, ranges from 1 to 8
+    /// # Arguments
+    ///
+    /// * `x` - center x coordinate, 0 <= x <= 160
+    /// * `y` - center y coordinate, 0 <= y <= 80
+    /// * `rad` - radius
+    /// * `col` - color of the line
+    /// * `filled` - whether the rectangle should be filled or not
+    /// * `size` - size of the individual pixels, ranges from 1 to 8
     pub fn circ(
         &self,
         x: u16,
