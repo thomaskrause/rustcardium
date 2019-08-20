@@ -71,7 +71,7 @@ impl Display {
 
     /// Clears the display using the color provided, or the default color black.
     ///
-    /// `col` - Clearing color
+    /// - `col` - Clearing color
     pub fn clear(&self, col: Option<Color>) -> Result<()> {
         match self.state {
             State::Closed => {

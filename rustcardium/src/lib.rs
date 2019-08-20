@@ -1,9 +1,9 @@
 #![no_std]
 
 pub mod display;
+pub mod os;
 
 use arrayvec::ArrayString;
-
 
 /// Representation of a RGB color value.
 pub struct Color {
@@ -25,7 +25,7 @@ impl Color {
     }
 }
 
-fn create_nullterminated_str(text : &str) -> ArrayString<[u8; 1024]> {
+fn create_nullterminated_str(text: &str) -> ArrayString<[u8; 1024]> {
     if text.len() < 1024 && text.ends_with("\0") {
         return ArrayString::from(text).unwrap();
     } else {
@@ -35,14 +35,15 @@ fn create_nullterminated_str(text : &str) -> ArrayString<[u8; 1024]> {
     }
 }
 
-
 /// Custom error variants for Epicardium.
 #[derive(Debug)]
 pub enum Error {
     DisplayClosed,
     OutsideDisplay,
-    DeviceOrResourceBusy
+    DeviceOrResourceBusy,
+    FileNotFound,
+    FileNotInLoadableFormat,
+    UnknownError,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
-
