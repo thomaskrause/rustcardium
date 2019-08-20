@@ -5,10 +5,12 @@
 #include <errno.h>
 
 #ifndef __SPHINX_DOC
-/* stddef.h is not recognized by hawkmoth for some odd reason */
+/* Some headers are not recognized by hawkmoth for some odd reason */
 #include <stddef.h>
+#include <stdbool.h>
 #else
 typedef unsigned int size_t;
+typedef _Bool bool;
 #endif /* __SPHINX_DOC */
 
 /*
@@ -27,8 +29,8 @@ typedef unsigned int size_t;
  */
 
 /* clang-format off */
-#define API_SYSTEM_EXIT             0x1 /* TODO */
-#define API_SYSTEM_EXEC             0x2 /* TODO */
+#define API_SYSTEM_EXIT             0x1
+#define API_SYSTEM_EXEC             0x2
 
 #define API_INTERRUPT_ENABLE        0xA
 #define API_INTERRUPT_DISABLE       0xB
@@ -58,11 +60,29 @@ typedef unsigned int size_t;
 #define API_FILE_SEEK              0x46
 #define API_FILE_TELL              0x47
 #define API_FILE_STAT              0x48
+#define API_FILE_OPENDIR           0x49
+#define API_FILE_READDIR           0x4a
+#define API_FILE_UNLINK            0x4b
+#define API_FILE_RENAME            0x4c
+#define API_FILE_MKDIR             0x4d
 
 #define API_RTC_GET_SECONDS        0x50
 #define API_RTC_SCHEDULE_ALARM     0x51
+#define API_RTC_SET_MILLISECONDS   0x52
 
 #define API_LEDS_SET               0x60
+#define API_LEDS_SET_HSV           0x61
+#define API_LEDS_PREP              0x62
+#define API_LEDS_PREP_HSV          0x63
+#define API_LEDS_UPDATE            0x64
+#define API_LEDS_SET_POWERSAVE     0x65
+#define API_LEDS_SET_ROCKET        0x66
+#define API_LEDS_SET_FLASHLIGHT    0x67
+#define API_LEDS_DIM_TOP           0x68
+#define API_LEDS_DIM_BOTTOM        0x69
+#define API_LEDS_SET_ALL           0x6a
+#define API_LEDS_SET_ALL_HSV       0x6b
+#define API_LEDS_SET_GAMMA_TABLE   0x6c
 
 #define API_VIBRA_SET              0x70
 #define API_VIBRA_VIBRATE          0x71
@@ -70,6 +90,13 @@ typedef unsigned int size_t;
 #define API_LIGHT_SENSOR_RUN       0x80
 #define API_LIGHT_SENSOR_GET       0x81
 #define API_LIGHT_SENSOR_STOP      0x82
+
+#define API_BUTTONS_READ           0x90
+
+#define API_GPIO_SET_PIN_MODE      0xA0
+#define API_GPIO_GET_PIN_MODE      0xA1
+#define API_GPIO_WRITE_PIN         0xA2
+#define API_GPIO_READ_PIN          0xA3
 /* clang-format on */
 
 typedef uint32_t api_int_id_t;
@@ -102,7 +129,7 @@ API(API_INTERRUPT_DISABLE, int epic_interrupt_disable(api_int_id_t int_id));
  */
 
 /* clang-format off */
-/** Reset Handler? **TODO** */
+/** Reset Handler */
 #define EPIC_INT_RESET                  0
 /** ``^C`` interrupt. See :c:func:`epic_isr_ctrl_c` for details.  */
 #define EPIC_INT_CTRL_C                 1
@@ -115,8 +142,59 @@ API(API_INTERRUPT_DISABLE, int epic_interrupt_disable(api_int_id_t int_id));
 #define EPIC_INT_NUM                    4
 /* clang-format on */
 
-API_ISR(EPIC_INT_RESET, epic_isr_reset);
+/*
+ * "Reset Handler*.  This isr is implemented by the API caller and is used to
+ * reset the core for loading a new payload.
+ *
+ * Just listed here for completeness.  You don't need to implement this yourself.
+ */
+API_ISR(EPIC_INT_RESET, __epic_isr_reset);
 
+/**
+ * Core API
+ * ========
+ * The following functions control execution of code on core 1.
+ */
+
+/**
+ * Stop execution of the current payload and return to the menu.
+ *
+ * :param int ret:  Return code.
+ * :return: :c:func:`epic_exit` will never return.
+ */
+void epic_exit(int ret) __attribute__((noreturn));
+
+/*
+ * The actual epic_exit() function is not an API call because it needs special
+ * behavior.  The underlying call is __epic_exit() which returns.  After calling
+ * this API function, epic_exit() will enter the reset handler.
+ */
+API(API_SYSTEM_EXIT, void __epic_exit(int ret));
+
+/**
+ * Stop execution of the current payload and immediately start another payload.
+ *
+ * :param char* name: Name (path) of the new payload to start.  This can either
+ *    be:
+ *
+ *    - A path to an ``.elf`` file (l0dable).
+ *    - A path to a ``.py`` file (will be loaded using Pycardium).
+ *    - A path to a directory (assumed to be a Python module, execution starts
+ *      with ``__init__.py`` in this folder).
+ *
+ * :return: :c:func:`epic_exec` will only return in case loading went wrong.
+ *    The following error codes can be returned:
+ *
+ *    - ``-ENOENT``: File not found.
+ *    - ``-ENOEXEC``: File not a loadable format.
+ */
+int epic_exec(char *name);
+
+/*
+ * Underlying API call for epic_exec().  The function is not an API call itself
+ * because it needs special behavior when loading a new payload.
+ */
+API(API_SYSTEM_EXEC, int __epic_exec(char *name));
 
 /**
  * UART/Serial Interface
@@ -206,26 +284,360 @@ API_ISR(EPIC_INT_UART_RX, epic_isr_uart_rx);
 API_ISR(EPIC_INT_CTRL_C, epic_isr_ctrl_c);
 
 /**
+ * Buttons
+ * =======
+ *
+ */
+
+/** Button IDs */
+enum epic_button {
+	/** ``1``, Bottom left button (bit 0). */
+	BUTTON_LEFT_BOTTOM   = 1,
+	/** ``2``, Bottom right button (bit 1). */
+	BUTTON_RIGHT_BOTTOM  = 2,
+	/** ``4``, Top right button (bit 2). */
+	BUTTON_RIGHT_TOP     = 4,
+	/** ``8``, Top left (power) button (bit 3). */
+	BUTTON_LEFT_TOP      = 8,
+	/** ``8``, Top left (power) button (bit 3). */
+	BUTTON_RESET         = 8,
+};
+
+/**
+ * Read buttons.
+ *
+ * :c:func:`epic_buttons_read` will read all buttons specified in ``mask`` and
+ * return set bits for each button which was reported as pressed.
+ *
+ * .. note::
+ *
+ *    The reset button cannot be unmapped from reset functionality.  So, while
+ *    you can read it, it cannot be used for app control.
+ *
+ * **Example**:
+ *
+ * .. code-block:: cpp
+ *
+ *    #include "epicardium.h"
+ *
+ *    uint8_t pressed = epic_buttons_read(BUTTON_LEFT_BOTTOM | BUTTON_RIGHT_BOTTOM);
+ *
+ *    if (pressed & BUTTON_LEFT_BOTTOM) {
+ *            // Bottom left button is pressed
+ *    }
+ *
+ *    if (pressed & BUTTON_RIGHT_BOTTOM) {
+ *            // Bottom right button is pressed
+ *    }
+ *
+ * :param uint8_t mask: Mask of buttons to read.  The 4 LSBs correspond to the 4
+ *     buttons:
+ *
+ *     ===== ========= ============ ===========
+ *     ``3`` ``2``     ``1``        ``0``
+ *     ----- --------- ------------ -----------
+ *     Reset Right Top Right Bottom Left Bottom
+ *     ===== ========= ============ ===========
+ *
+ *     Use the values defined in :c:type:`epic_button` for masking, as shown in
+ *     the example above.
+ * :return: Returns nonzero value if unmasked buttons are pushed.
+ */
+API(API_BUTTONS_READ, uint8_t epic_buttons_read(uint8_t mask));
+
+/**
+ * Wristband GPIO
+ * ==============
+ */
+
+/** GPIO pins IDs */
+enum gpio_pin {
+    /** ``1``, Wristband connector 1 */
+    GPIO_WRISTBAND_1 = 1,
+    /** ``2``, Wristband connector 2 */
+    GPIO_WRISTBAND_2 = 2,
+    /** ``3``, Wristband connector 3 */
+    GPIO_WRISTBAND_3 = 3,
+    /** ``4``, Wristband connector 4 */
+    GPIO_WRISTBAND_4 = 4,
+};
+
+/** GPIO pin modes */
+enum gpio_mode {
+    /** Configure the pin as input */
+    GPIO_MODE_IN = (1<<0),
+    /** Configure the pin as output */
+    GPIO_MODE_OUT = (1<<1),
+
+    /** Enable the internal pull-up resistor */
+    GPIO_PULL_UP = (1<<6),
+    /** Enable the internal pull-down resistor */
+    GPIO_PULL_DOWN = (1<<7),
+};
+
+/**
+ * Set the mode of a card10 GPIO pin.
+ *
+ * :c:func:`epic_gpio_set_pin_mode` will set the pin specified by ``pin`` to the mode ``mode``.
+ * If the specified pin ID is not valid this function will do nothing.
+ *
+ * **Example:**
+ *
+ * .. code-block:: cpp
+ *
+ *    #include "epicardium.h"
+ *
+ *    // Configure wristband pin 1 as output.
+ *    if (epic_gpio_set_pin_mode(GPIO_WRISTBAND_1, GPIO_MODE_OUT)) {
+ *        // Do your error handling here...
+ *    }
+ *
+ * :param uint8_t pin: ID of the pin to configure. Use on of the IDs defined in :c:type:`gpio_pin`.
+ * :param uint8_t mode: Mode to be configured. Use a combination of the :c:type:`gpio_mode` flags.
+ * :returns: ``0`` if the mode was set, ``-EINVAL`` if ``pin`` is not valid or the mode could not be set.
+ */
+API(API_GPIO_SET_PIN_MODE, int epic_gpio_set_pin_mode(uint8_t pin, uint8_t mode));
+
+/**
+ * Get the mode of a card10 GPIO pin.
+ *
+ * :c:func:`epic_gpio_get_pin_mode` will get the current mode of the GPIO pin specified by ``pin``.
+ *
+ * **Example:**
+ *
+ * .. code-block:: cpp
+ *
+ *    #include "epicardium.h"
+ *
+ *    // Get the mode of wristband pin 1.
+ *    int mode = epic_gpio_get_pin_mode(GPIO_WRISTBAND_1);
+ *    if (mode < 0) {
+ *        // Do your error handling here...
+ *    } else {
+ *        // Do something with the queried mode information
+ *    }
+ *
+ * :param uint8_t pin: ID of the pin to get the configuration of. Use on of the IDs defined in :c:type:`gpio_pin`.
+ * :returns: Configuration byte for the specified pin or ``-EINVAL`` if the pin is not valid.
+ */
+API(API_GPIO_GET_PIN_MODE, int epic_gpio_get_pin_mode(uint8_t pin));
+
+/**
+ * Write value to a card10 GPIO pin,
+ *
+ * :c:func:`epic_gpio_write_pin` will set the value of the GPIO pin described by ``pin`` to either on or off depending on ``on``.
+ *
+ * **Example:**
+ *
+ * .. code-block:: cpp
+ *
+ *    #include "epicardium.h"
+ *
+ *    // Get the mode of wristband pin 1.
+ *    int mode = epic_gpio_get_pin_mode(GPIO_WRISTBAND_1);
+ *    if (mode < 0) {
+ *        // Do your error handling here...
+ *    } else {
+ *        // Do something with the queried mode information
+ *    }
+ *
+ * :param uint8_t pin: ID of the pin to get the configuration of. Use on of the IDs defined in :c:type:`gpio_pin`.
+ * :param bool on: Sets the pin to either true (on/high) or false (off/low).
+ * :returns: ``0`` on succcess, ``-EINVAL`` if ``pin`` is not valid or is not configured as an output.
+ */
+API(API_GPIO_WRITE_PIN, int epic_gpio_write_pin(uint8_t pin, bool on));
+
+/**
+ * Read value of a card10 GPIO pin.
+ *
+ * :c:func:`epic_gpio_read_pin` will get the value of the GPIO pin described by ``pin``.
+ *
+ * **Example:**
+ *
+ * .. code-block:: cpp
+ *
+ *    #include "epicardium.h"
+ *
+ *    // Get the current value of wristband pin 1.
+ *    uint32_t value = epic_gpio_read_pin(GPIO_WRISTBAND_1);
+ *    if (mode == -EINVAL) {
+ *        // Do your error handling here...
+ *    } else {
+ *        // Do something with the current value
+ *    }
+ *
+ * :param uint8_t pin: ID of the pin to get the configuration of. Use on of the IDs defined in :c:type:`gpio_pin`.
+ * :returns: ``-EINVAL`` if ``pin`` is not valid, an integer value otherwise.
+ */
+API(API_GPIO_READ_PIN, uint32_t epic_gpio_read_pin(uint8_t pin));
+
+/**
  * LEDs
  * ====
  */
 
 /**
- * Set one of card10's RGB LEDs to a certain color.
+ * Set one of card10's RGB LEDs to a certain color in RGB format.
  *
- * .. warning::
+ * This function is rather slow when setting multiple LEDs, use
+ * :c:func:`leds_set_all` or :c:func:`leds_prep` + :c:func:`leds_update`
+ * instead.
  *
- *    This API function is not yet stable and is this not part of the API
- *    freeze.  Any binary using :c:func:`epic_leds_set` might stop working at
- *    any time.  Once this warning is removed, the function can be considered
- *    stable like the rest of the API.
- *
- * :param led:  Which led to set.  0-10 are the leds on the top and 11-14 are the 4 "ambient" leds.
- * :param r:  Red component of the color.
- * :param g:  Green component of the color.
- * :param b:  Blue component of the color.
+ * :param int led:  Which LED to set.  0-10 are the LEDs on the top and 11-14
+ *    are the 4 "ambient" LEDs.
+ * :param uint8_t r:  Red component of the color.
+ * :param uint8_t g:  Green component of the color.
+ * :param uint8_t b:  Blue component of the color.
  */
 API(API_LEDS_SET, void epic_leds_set(int led, uint8_t r, uint8_t g, uint8_t b));
+
+/**
+ * Set one of card10's RGB LEDs to a certain color in HSV format.
+ *
+ * This function is rather slow when setting multiple LEDs, use
+ * :c:func:`leds_set_all_hsv` or :c:func:`leds_prep_hsv` + :c:func:`leds_update`
+ * instead.
+ *
+ * :param int led:  Which LED to set.  0-10 are the LEDs on the top and 11-14 are the 4 "ambient" LEDs.
+ * :param float h:  Hue component of the color. (0 <= h < 360)
+ * :param float s:  Saturation component of the color. (0 <= s <= 1)
+ * :param float v:  Value/Brightness component of the color. (0 <= v <= 0)
+ */
+API(API_LEDS_SET_HSV, void epic_leds_set_hsv(int led, float h, float s, float v));
+
+/**
+ * Set multiple of card10's RGB LEDs to a certain color in RGB format.
+ *
+ * The first ``len`` leds are set, the remaining ones are not modified.
+ *
+ * :param uint8_t[len][r,g,b] pattern:  Array with RGB Values with 0 <= len <=
+ *    15. 0-10 are the LEDs on the top and 11-14 are the 4 "ambient" LEDs.
+ * :param uint8_t len: Length of 1st dimension of ``pattern``, see above.
+ */
+API(API_LEDS_SET_ALL, void epic_leds_set_all(uint8_t *pattern, uint8_t len));
+
+/**
+ * Set multiple of card10's RGB LEDs to a certain color in HSV format.
+ *
+ * The first ``len`` led are set, the remaining ones are not modified.
+ *
+ * :param uint8_t[len][h,s,v] pattern:  Array of format with HSV Values with 0
+ *    <= len <= 15.  0-10 are the LEDs on the top and 11-14 are the 4 "ambient"
+ *    LEDs. (0 <= h < 360, 0 <= s <= 1, 0 <= v <= 1)
+ * :param uint8_t len: Length of 1st dimension of ``pattern``, see above.
+ */
+API(API_LEDS_SET_ALL_HSV, void epic_leds_set_all_hsv(float *pattern, uint8_t len));
+
+/**
+ * Prepare one of card10's RGB LEDs to be set to a certain color in RGB format.
+ *
+ * Use :c:func:`leds_update` to apply changes.
+ *
+ * :param int led:  Which LED to set.  0-10 are the LEDs on the top and 11-14
+ *    are the 4 "ambient" LEDs.
+ * :param uint8_t r:  Red component of the color.
+ * :param uint8_t g:  Green component of the color.
+ * :param uint8_t b:  Blue component of the color.
+ */
+API(API_LEDS_PREP, void epic_leds_prep(int led, uint8_t r, uint8_t g, uint8_t b));
+
+/**
+ * Prepare one of card10's RGB LEDs to be set to a certain color in HSV format.
+ *
+ * Use :c:func:`leds_update` to apply changes.
+ *
+ * :param int led:  Which LED to set.  0-10 are the LEDs on the top and 11-14
+ *    are the 4 "ambient" LEDs.
+ * :param uint8_t h:  Hue component of the color. (float, 0 <= h < 360)
+ * :param uint8_t s:  Saturation component of the color. (float, 0 <= s <= 1)
+ * :param uint8_t v:  Value/Brightness component of the color. (float, 0 <= v <= 0)
+ */
+API(API_LEDS_PREP_HSV, void epic_leds_prep_hsv(int led, float h, float s, float v));
+
+/**
+ * Set global brightness for top RGB LEDs.
+ *
+ * Aside from PWM, the RGB LEDs' overall brightness can be controlled with a
+ * current limiter independently to achieve a higher resolution at low
+ * brightness which can be set with this function.
+ *
+ * :param uint8_t value:  Global brightness of top LEDs. (1 <= value <= 8, default = 1)
+ */
+API(API_LEDS_DIM_BOTTOM, void epic_leds_dim_bottom(uint8_t value));
+
+/**
+ * Set global brightness for bottom RGB LEDs.
+ *
+ * Aside from PWM, the RGB LEDs' overall brightness can be controlled with a
+ * current limiter independently to achieve a higher resolution at low
+ * brightness which can be set with this function.
+ *
+ * :param uint8_t value:  Global brightness of bottom LEDs. (1 <= value <= 8, default = 8)
+ */
+API(API_LEDS_DIM_TOP, void epic_leds_dim_top(uint8_t value));
+
+/**
+ * Enables or disables powersave mode.
+ *
+ * Even when set to zero, the RGB LEDs still individually consume ~1mA.
+ * Powersave intelligently switches the supply power in groups. This introduces
+ * delays in the magnitude of ~10µs, so it can be disabled for high speed
+ * applications such as POV.
+ *
+ * :param bool eco:  Activates powersave if true, disables it when false. (default = True)
+ */
+API(API_LEDS_SET_POWERSAVE, void epic_leds_set_powersave(bool eco));
+
+/**
+ * Updates the RGB LEDs with changes that have been set with :c:func:`leds_prep`
+ * or :c:func:`leds_prep_hsv`.
+ *
+ * The LEDs can be only updated in bulk, so using this approach instead of
+ * :c:func:`leds_set` or :c:func:`leds_set_hsv` significantly reduces the load
+ * on the corresponding hardware bus.
+ */
+API(API_LEDS_UPDATE, void epic_leds_update(void));
+
+/**
+ * Set the brightness of one of the rocket LEDs.
+ *
+ * :param int led:  Which LED to set.
+ *
+ *    +-------+--------+----------+
+ *    |   ID  | Color  | Location |
+ *    +=======+========+==========+
+ *    | ``0`` | Blue   | Left     |
+ *    +-------+--------+----------+
+ *    | ``1`` | Yellow | Top      |
+ *    +-------+--------+----------+
+ *    | ``2`` | Green  | Right    |
+ *    +-------+--------+----------+
+ * :param uint8_t value:  Brightness of LED (value between 0 and 31).
+ */
+API(API_LEDS_SET_ROCKET, void epic_leds_set_rocket(int led, uint8_t value));
+
+/**
+ * Turn on the bright side LED which can serve as a flashlight if worn on the left wrist or as a rad tattoo illuminator if worn on the right wrist.
+ *
+ *:param bool power:  Side LED on if true.
+ */
+API(API_LEDS_SET_FLASHLIGHT, void epic_set_flashlight(bool power));
+
+/**
+ * Set gamma lookup table for individual rgb channels.
+ *
+ * Since the RGB LEDs' subcolor LEDs have different peak brightness and the
+ * linear scaling introduced by PWM is not desireable for color accurate work,
+ * custom lookup tables for each individual color channel can be loaded into the
+ * Epicardium's memory with this function.
+ *
+ * :param uint8_t rgb_channel:  Color whose gamma table is to be updated, 0->Red, 1->Green, 2->Blue.
+ * :param uint8_t[256] gamma_table: Gamma lookup table. (default = 4th order power function rounded up)
+ */
+API(API_LEDS_SET_GAMMA_TABLE, void epic_leds_set_gamma_table(
+	uint8_t rgb_channel,
+	uint8_t *gamma_table
+));
 
 /**
  * Sensor Data Streams
@@ -588,10 +1000,9 @@ API(API_LIGHT_SENSOR_STOP, int epic_light_sensor_stop());
  */
 
 /** */
-API(
-	API_FILE_OPEN,
-	int epic_file_open(const char* filename, const char* modeString)
-);
+API(API_FILE_OPEN, int epic_file_open(
+	const char* filename, const char* modeString
+));
 
 /** */
 API(API_FILE_CLOSE, int epic_file_close(int fd));
@@ -599,7 +1010,16 @@ API(API_FILE_CLOSE, int epic_file_close(int fd));
 /** */
 API(API_FILE_READ, int epic_file_read(int fd, void* buf, size_t nbytes));
 
-/** */
+/**
+ * Write bytes to a file.
+ *
+ * :param int fd: Descriptor returned by :c:func:`epic_file_open`.
+ * :param void* buf: Data to write.
+ * :param size_t nbytes: Number of bytes to write.
+ *
+ * :return: ``< 0`` on error, ``nbytes`` on success. (Partial writes don't occur on success!)
+ *
+*/
 API(
 	API_FILE_WRITE,
 	int epic_file_write(int fd, const void* buf, size_t nbytes)
@@ -630,6 +1050,12 @@ enum epic_stat_type {
 	EPICSTAT_DIR,
 };
 
+/**
+ * Maximum length of a path string (=255).
+ */
+#define EPICSTAT_MAX_PATH        255
+/* conveniently the same as FF_MAX_LFN */
+
 /** */
 struct epic_stat {
 	/** Entity Type: file, directory or none */
@@ -648,20 +1074,10 @@ struct epic_stat {
 	/** Size in bytes. */
 	uint32_t size;
 
-	/**
-	 * Which FAT volume this entity resides on.
-	 *
-	 * (will be needed later once we distinguish between system and user volume)
-	 */
-	uint8_t volume;
-	uint8_t _reserved[9];
+	/** File Name. */
+	char name[EPICSTAT_MAX_PATH + 1];
+	uint8_t _reserved[12];
 };
-
-#ifndef __cplusplus
-#if defined(__GNUC__) && ((__GNUC__ > 4) || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
-_Static_assert(sizeof(struct epic_stat) == 20, "");
-#endif
-#endif
 
 /**
  * stat path
@@ -676,6 +1092,82 @@ API(API_FILE_STAT, int epic_file_stat(
 ));
 
 /**
+ * Open a directory, for enumerating its contents.
+ *
+ * Use :c:func:`epic_file_readdir` to iterate over the directories entries.
+ *
+ * **Example**:
+ *
+ * .. code-block:: cpp
+ *
+ *    #include "epicardium.h"
+ *
+ *    int fd = epic_file_opendir("/path/to/dir");
+ *
+ *    struct epic_stat entry;
+ *    for (;;) {
+ *            epic_file_readdir(fd, &entry);
+ *
+ *            if (entry.type == EPICSTAT_NONE) {
+ *                    // End
+ *                    break;
+ *            }
+ *
+ *            printf("%s\n", entry.name);
+ *    }
+ *
+ *    epic_file_close(fd);
+ *
+ * :param char* path: Directory to open.
+ *
+ * :return: ``> 0`` on success, negative on error
+ */
+API(API_FILE_OPENDIR, int epic_file_opendir(const char* path));
+
+/**
+ * Read one entry from a directory.
+ *
+ * Call :c:func:`epic_file_readdir` multiple times to iterate over all entries
+ * of a directory.  The end of the entry list is marked by returning
+ * :c:data:`EPICSTAT_NONE` as the :c:member:`epic_stat.type`.
+ *
+ * :param int fd: Descriptor returned by :c:func:`epic_file_opendir`.
+ * :param epic_stat* stat: Pointer where to store the result.  Pass NULL to
+ *    reset iteration offset of ``fd`` back to the beginning.
+ *
+ * :return: ``0`` on success, negative on error
+ */
+API(API_FILE_READDIR, int epic_file_readdir(int fd, struct epic_stat* stat));
+
+/**
+ * Unlink (remove) a file.
+ *
+ * :param char* path: file to delete
+ *
+ * :return: ``0`` on success, negative on error
+ */
+API(API_FILE_UNLINK, int epic_file_unlink(const char* path));
+
+/**
+ * Rename a file or directory.
+ *
+ * :param char* oldp: old name
+ * :param char* newp: new name
+ *
+ * :return: ``0`` on success, negative on error
+ */
+API(API_FILE_RENAME, int epic_file_rename(const char *oldp, const char* newp));
+
+/**
+ * Create directory in CWD
+ *
+ * :param char* dirname: directory name
+ *
+ * :return: ``0`` on success, negative on error
+ */
+API(API_FILE_MKDIR, int epic_file_mkdir(const char *dirname));
+
+/**
  * RTC
  * ===
  */
@@ -686,6 +1178,11 @@ API(API_FILE_STAT, int epic_file_stat(
  * :return: Unix time in seconds
  */
 API(API_RTC_GET_SECONDS, uint32_t epic_rtc_get_seconds(void));
+
+/**
+ * Sets the current RTC time in milliseconds
+ */
+API(API_RTC_SET_MILLISECONDS, void epic_rtc_set_milliseconds(uint64_t milliseconds));
 
 /**
  * Schedule the RTC alarm for the given timestamp.
