@@ -31,6 +31,8 @@ typedef _Bool bool;
 /* clang-format off */
 #define API_SYSTEM_EXIT             0x1
 #define API_SYSTEM_EXEC             0x2
+#define API_SYSTEM_RESET            0x3
+#define API_BATTERY_VOLTAGE         0x4
 
 #define API_INTERRUPT_ENABLE        0xA
 #define API_INTERRUPT_DISABLE       0xB
@@ -83,6 +85,7 @@ typedef _Bool bool;
 #define API_LEDS_SET_ALL           0x6a
 #define API_LEDS_SET_ALL_HSV       0x6b
 #define API_LEDS_SET_GAMMA_TABLE   0x6c
+#define API_LEDS_CLEAR_ALL         0x6d
 
 #define API_VIBRA_SET              0x70
 #define API_VIBRA_VIBRATE          0x71
@@ -97,6 +100,13 @@ typedef _Bool bool;
 #define API_GPIO_GET_PIN_MODE      0xA1
 #define API_GPIO_WRITE_PIN         0xA2
 #define API_GPIO_READ_PIN          0xA3
+
+#define API_TRNG_READ              0xB0
+
+#define API_PERSONAL_STATE_SET     0xc0
+#define API_PERSONAL_STATE_GET     0xc1
+#define API_PERSONAL_STATE_IS_PERSISTENT 0xc2
+
 /* clang-format on */
 
 typedef uint32_t api_int_id_t;
@@ -195,6 +205,21 @@ int epic_exec(char *name);
  * because it needs special behavior when loading a new payload.
  */
 API(API_SYSTEM_EXEC, int __epic_exec(char *name));
+
+/**
+ * Reset/Restart card10
+ */
+API(API_SYSTEM_RESET, void epic_system_reset(void));
+
+/**
+ * Battery Voltage
+ * ===============
+ */
+
+/**
+ * Read the current battery voltage.
+ */
+API(API_BATTERY_VOLTAGE, int epic_read_battery_voltage(float *result));
 
 /**
  * UART/Serial Interface
@@ -638,6 +663,75 @@ API(API_LEDS_SET_GAMMA_TABLE, void epic_leds_set_gamma_table(
 	uint8_t rgb_channel,
 	uint8_t *gamma_table
 ));
+
+/**
+ * Set all LEDs to a certain RGB color.
+ *
+ * :param uint8_t r: Value for the red color channel.
+ * :param uint8_t g: Value for the green color channel.
+ * :param uint8_t b: Value for the blue color channel.
+ */
+API(API_LEDS_CLEAR_ALL, void epic_leds_clear_all(uint8_t r, uint8_t g, uint8_t b));
+
+/**
+ * Personal State
+ * ==============
+ * Card10 can display your personal state.
+ *
+ * If a personal state is set the top-left LED on the bottom side of the
+ * harmonics board is directly controlled by epicardium and it can't be
+ * controlled by pycardium.
+ *
+ * To re-enable pycardium control the personal state has to be cleared. To do
+ * that simply set it to ``STATE_NONE``.
+ *
+ * The personal state can be set to be persistent which means it won't get reset
+ * on pycardium application change/restart.
+ */
+
+/** Possible personal states. */
+enum personal_state {
+    /** ``0``, No personal state - LED is under regular application control. */
+    STATE_NONE = 0,
+    /** ``1``, "no contact, please!" - I am overloaded. Please leave me be - red led, continuously on. */
+    STATE_NO_CONTACT = 1,
+    /** ``2``, "chaos" - Adventure time - blue led, short blink, long blink. */
+    STATE_CHAOS = 2,
+    /** ``3``, "communication" - want to learn something or have a nice conversation - green led, long blinks. */
+    STATE_COMMUNICATION = 3,
+    /** ``4``, "camp" - I am focussed on self-, camp-, or community maintenance - yellow led, fade on and off. */
+    STATE_CAMP = 4,
+};
+
+/**
+ * Set the users personal state.
+ *
+ * Using :c:func:`epic_personal_state_set` an application can set the users personal state.
+ *
+ * :param uint8_t state: The users personal state. Must be one of :c:type:`personal_state`.
+ * :param bool persistent: Indicates whether the configured personal state will remain set and active on pycardium application restart/change.
+ * :returns: ``0`` on success, ``-EINVAL`` if an invalid state was requested.
+ */
+API(API_PERSONAL_STATE_SET, int epic_personal_state_set(uint8_t state,
+                                                        bool persistent));
+
+/**
+ * Get the users personal state.
+ *
+ * Using :c:func:`epic_personal_state_get` an application can get the currently set personal state of the user.
+ *
+ * :returns: A value with exactly one value of :c:type:`personal_state` set.
+ */
+API(API_PERSONAL_STATE_GET, int epic_personal_state_get());
+
+/**
+ * Get whether the users personal state is persistent.
+ *
+ * Using :c:func:`epic_personal_state_is_persistent` an app can find out whether the users personal state is persistent or transient.
+ *
+ * :returns: ``1`` if the state is persistent, ``0`` otherwise.
+ */
+API(API_PERSONAL_STATE_IS_PERSISTENT, int epic_personal_state_is_persistent());
 
 /**
  * Sensor Data Streams
@@ -1202,5 +1296,22 @@ API(API_RTC_SCHEDULE_ALARM, int epic_rtc_schedule_alarm(uint32_t timestamp));
  * can be scheduled using :c:func:`epic_rtc_schedule_alarm`.
  */
 API_ISR(EPIC_INT_RTC_ALARM, epic_isr_rtc_alarm);
+
+/**
+ * TRNG
+ * ====
+ */
+
+/**
+ * Read random bytes from the TRNG.
+ *
+ * :param uint8_t * dest: Destination buffer
+ * :param size: Number of bytes to read.
+ * :return: `0` on success or a negative value if an error occured. Possible
+ *    errors:
+ *
+ *    - ``-EFAULT``: Invalid destination address.
+ */
+API(API_TRNG_READ, int epic_trng_read(uint8_t *dest, size_t size));
 
 #endif /* _EPICARDIUM_H */
