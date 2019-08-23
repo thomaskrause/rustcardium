@@ -1,9 +1,13 @@
 # Epicardium Rust Bindings
 
-**Experimental and unfinished, _not even tested on the actual hardware yet!_**
+**Experimental and unfinished, _not all Epicardium API functions have been mapped and there is nothing final about the API design_**
 
 This is Rust crate intends to make the [Epicardium API](https://firmware.card10.badge.events.ccc.de/epicardium/overview.html) for your CCC Camp 2019 wristband [card10](https://git.card10.badge.events.ccc.de/card10) available to Rust.
-Its **WORK IN PROGRESS** API should be similar to the [Python-API](https://firmware.card10.badge.events.ccc.de/pycardium/overview.html) and the goal is to make it easier to create your own [l0adable](https://firmware.card10.badge.events.ccc.de/overview.html#l0dables) by using a quickstart/template project based on the [cortex-m](https://github.com/rust-embedded/cortex-m) crates and cross-compiling it.
+Its **WORK IN PROGRESS** API should be similar to the [Python-API](https://firmware.card10.badge.events.ccc.de/pycardium/overview.html) and the goal is to make it easier to create your own [l0adable](https://firmware.card10.badge.events.ccc.de/overview.html#l0dables) by using a quickstart/template project cross-compiling it.
+
+## Inspiration
+
+This code only works because of the great groundwork of [https://git.card10.badge.events.ccc.de/astro/rust-card10](https://git.card10.badge.events.ccc.de/astro/rust-card10). 
 
 ## Modules progress
 
@@ -14,6 +18,7 @@ Epicardium has several modules which need to be wrapped. The low-level C binding
 - [ ] light_sensor
 - [ ] utime
 - [ ] vibra
+- ...
 
 ## API documentation
 
@@ -25,18 +30,6 @@ cargo doc --no-deps
 
 and open the resulting file `target/doc/rustcardium/index.html`.
 
+## Example
 
-## How it might be used (after I can test it)
-
-1. Use [cortex-m-quickstart](https://github.com/rust-embedded/cortex-m-quickstart) to create project which can produce Cortex-M binaries
-2. Configure `thumbv7em-none-eabihf` as a target
-3. Use the following configuration in the `memory.x` file
-    - FLASH : ORIGIN = **0x10080000**, LENGTH = **512K**
-    - RAM : ORIGIN = **0x20040000**, LENGTH = **256K**
-4. Add this crate as dependency. You can use this git repository until it might be published on crates.io
-```toml
-[dependencies]
-rustcardium = { git = "https://github.com/thomaskrause/rustcardium" }
-```
-5. TODO: Store this as a l0adable on the card10 and start it
-**THIS HAS NOT BEEN TESTED YET**
+There is an example in the `example/` folder which shows a plot of the accelerometer values.
