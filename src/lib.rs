@@ -3,6 +3,7 @@
 pub mod buttons;
 pub mod display;
 pub mod os;
+pub mod uart;
 mod sys;
 
 use arrayvec::ArrayString;
