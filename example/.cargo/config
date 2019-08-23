@@ -1,0 +1,12 @@
+[target.thumbv7em-none-eabi]
+rustflags = [
+  "-C", "linker=arm-none-eabi-gcc",
+  "-C", "link-args=-Tlink.x -n -pie -fPIC",
+  "-C", "relocation-model=pic",
+  "-C", "link-arg=-nostdlib",
+  "-C", "link-arg=-lc",
+]
+
+[build]
+target = "thumbv7em-none-eabi"
+

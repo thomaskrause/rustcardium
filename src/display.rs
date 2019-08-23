@@ -170,11 +170,11 @@ impl Display {
             }
             State::Opened => unsafe {
                 let linestyle = if dotted {
-                    sys::disp_linestyle_LINESTYLE_FULL
-                } else {
                     sys::disp_linestyle_LINESTYLE_DOTTED
+                } else {
+                    sys::disp_linestyle_LINESTYLE_FULL
                 };
-                let result = sys::epic_disp_line(xs, ys, ye, ye, col.rgb565(), linestyle, size);
+                let result = sys::epic_disp_line(xs, ys, xe, ye, col.rgb565(), linestyle, size);
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
