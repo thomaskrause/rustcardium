@@ -1,5 +1,5 @@
-use core::fmt::Write;
 use crate::sys::*;
+use core::fmt::Write;
 
 pub struct Uart;
 

@@ -80,9 +80,8 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
-                let result = sys::epic_disp_clear(
-                    col.unwrap_or(Color { r: 0, g: 0, b: 0 }).rgb565(),
-                );
+                let result =
+                    sys::epic_disp_clear(col.unwrap_or(Color { r: 0, g: 0, b: 0 }).rgb565());
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -106,13 +105,8 @@ impl Display {
             }
             State::Opened => unsafe {
                 let text = create_nullterminated_str(text);
-                let result = sys::epic_disp_print(
-                    posx,
-                    posy,
-                    text.as_ptr(),
-                    fg.rgb565(),
-                    bg.rgb565(),
-                );
+                let result =
+                    sys::epic_disp_print(posx, posy, text.as_ptr(), fg.rgb565(), bg.rgb565());
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -180,8 +174,7 @@ impl Display {
                 } else {
                     sys::disp_linestyle_LINESTYLE_DOTTED
                 };
-                let result =
-                    sys::epic_disp_line(xs, ys, ye, ye, col.rgb565(), linestyle, size);
+                let result = sys::epic_disp_line(xs, ys, ye, ye, col.rgb565(), linestyle, size);
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -225,8 +218,7 @@ impl Display {
                 } else {
                     sys::disp_fillstyle_FILLSTYLE_EMPTY
                 };
-                let result =
-                    sys::epic_disp_rect(xs, ys, ye, ye, col.rgb565(), fillstyle, size);
+                let result = sys::epic_disp_rect(xs, ys, ye, ye, col.rgb565(), fillstyle, size);
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -268,8 +260,7 @@ impl Display {
                 } else {
                     sys::disp_fillstyle_FILLSTYLE_EMPTY
                 };
-                let result =
-                    sys::epic_disp_circ(x, y, rad, col.rgb565(), fillstyle, size);
+                let result = sys::epic_disp_circ(x, y, rad, col.rgb565(), fillstyle, size);
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }

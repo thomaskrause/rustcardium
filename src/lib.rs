@@ -1,12 +1,11 @@
 #![no_std]
 #![feature(global_asm)]
 
-
 pub mod buttons;
 pub mod display;
 pub mod os;
-pub mod uart;
 mod sys;
+pub mod uart;
 
 use arrayvec::ArrayString;
 
@@ -60,14 +59,10 @@ pub struct Color {
 
 impl Color {
     fn rgb565(self) -> u16 {
-        let r5 = ((self.r as u16) >> 3) as u8;
-        let g6 = ((self.g as u16) >> 2) as u8;
-        let b5 = ((self.b as u16) >> 3) as u8;
-
-        let result1 = ((g6 & 0b000111) << 5) | b5;
-        let result2 = (r5 << 3) | ((g6 & 0b111000) >> 3);
-
-        ((result1 as u16) << 8) | (result2 as u16)
+        let raw = ((u16::from(self.r) & 0xF8) << 8)
+            | ((u16::from(self.g) & 0xFA) << 3)
+            | (u16::from(self.b) & 0xF8);
+        raw
     }
 }
 
