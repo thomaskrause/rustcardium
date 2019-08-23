@@ -6,6 +6,8 @@ pub mod os;
 
 use arrayvec::ArrayString;
 
+use panic_halt as _;
+
 /// Representation of a RGB color value.
 pub struct Color {
     pub r: u8,
