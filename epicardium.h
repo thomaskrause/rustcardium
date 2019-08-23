@@ -53,6 +53,14 @@ typedef _Bool bool;
 #define API_DISP_CIRC              0x27
 #define API_DISP_PIXEL             0x28
 #define API_DISP_FRAMEBUFFER       0x29
+#define API_DISP_BACKLIGHT         0x2a
+
+/* API_BATTERY_VOLTAGE              0x30 */
+#define API_BATTERY_CURRENT        0x31
+#define API_CHARGEIN_VOLTAGE       0x32
+#define API_CHARGEIN_CURRENT       0x33
+#define API_SYSTEM_VOLTAGE         0x34
+#define API_THERMISTOR_VOLTAGE     0x35
 
 #define API_FILE_OPEN              0x40
 #define API_FILE_CLOSE             0x41
@@ -71,6 +79,7 @@ typedef _Bool bool;
 #define API_RTC_GET_SECONDS        0x50
 #define API_RTC_SCHEDULE_ALARM     0x51
 #define API_RTC_SET_MILLISECONDS   0x52
+#define API_RTC_GET_MILLISECONDS   0x53
 
 #define API_LEDS_SET               0x60
 #define API_LEDS_SET_HSV           0x61
@@ -106,6 +115,14 @@ typedef _Bool bool;
 #define API_PERSONAL_STATE_SET     0xc0
 #define API_PERSONAL_STATE_GET     0xc1
 #define API_PERSONAL_STATE_IS_PERSISTENT 0xc2
+
+#define API_BME680_INIT            0xD0
+#define API_BME680_DEINIT          0xD1
+#define API_BME680_GET_DATA        0xD2
+
+#define API_BHI160_ENABLE          0xe0
+#define API_BHI160_DISABLE         0xe1
+#define API_BHI160_DISABLE_ALL     0xe2
 
 /* clang-format on */
 
@@ -147,9 +164,16 @@ API(API_INTERRUPT_DISABLE, int epic_interrupt_disable(api_int_id_t int_id));
 #define EPIC_INT_UART_RX                2
 /** RTC Alarm interrupt.  See :c:func:`epic_isr_rtc_alarm` */
 #define EPIC_INT_RTC_ALARM              3
+/** BHI */
+#define EPIC_INT_BHI160_ACCELEROMETER   4
+API_ISR(EPIC_INT_BHI160_ACCELEROMETER, epic_isr_bhi160_accelerometer);
+#define EPIC_INT_BHI160_ORIENTATION     5
+API_ISR(EPIC_INT_BHI160_ORIENTATION, epic_isr_bhi160_orientation);
+#define EPIC_INT_BHI160_GYROSCOPE       6
+API_ISR(EPIC_INT_BHI160_GYROSCOPE, epic_isr_bhi160_gyroscope);
 
 /* Number of defined interrupts. */
-#define EPIC_INT_NUM                    4
+#define EPIC_INT_NUM                    7
 /* clang-format on */
 
 /*
@@ -212,14 +236,41 @@ API(API_SYSTEM_EXEC, int __epic_exec(char *name));
 API(API_SYSTEM_RESET, void epic_system_reset(void));
 
 /**
- * Battery Voltage
+ * PMIC API
  * ===============
  */
+
 
 /**
  * Read the current battery voltage.
  */
 API(API_BATTERY_VOLTAGE, int epic_read_battery_voltage(float *result));
+
+/**
+ * Read the current battery current.
+ */
+API(API_BATTERY_CURRENT, int epic_read_battery_current(float *result));
+
+/**
+ * Read the current charge voltage.
+ */
+API(API_CHARGEIN_VOLTAGE, int epic_read_chargein_voltage(float *result));
+
+/**
+ * Read the current charge current.
+ */
+API(API_CHARGEIN_CURRENT, int epic_read_chargein_current(float *result));
+
+/**
+ * Read the current system voltage.
+ */
+API(API_SYSTEM_VOLTAGE, int epic_read_system_voltage(float *result));
+
+/**
+ * Read the current thermistor voltage.
+ */
+API(API_THERMISTOR_VOLTAGE, int epic_read_thermistor_voltage(float *result));
+
 
 /**
  * UART/Serial Interface
@@ -378,26 +429,26 @@ API(API_BUTTONS_READ, uint8_t epic_buttons_read(uint8_t mask));
 /** GPIO pins IDs */
 enum gpio_pin {
     /** ``1``, Wristband connector 1 */
-    GPIO_WRISTBAND_1 = 1,
+    EPIC_GPIO_WRISTBAND_1 = 1,
     /** ``2``, Wristband connector 2 */
-    GPIO_WRISTBAND_2 = 2,
+    EPIC_GPIO_WRISTBAND_2 = 2,
     /** ``3``, Wristband connector 3 */
-    GPIO_WRISTBAND_3 = 3,
+    EPIC_GPIO_WRISTBAND_3 = 3,
     /** ``4``, Wristband connector 4 */
-    GPIO_WRISTBAND_4 = 4,
+    EPIC_GPIO_WRISTBAND_4 = 4,
 };
 
 /** GPIO pin modes */
 enum gpio_mode {
     /** Configure the pin as input */
-    GPIO_MODE_IN = (1<<0),
+    EPIC_GPIO_MODE_IN = (1<<0),
     /** Configure the pin as output */
-    GPIO_MODE_OUT = (1<<1),
+    EPIC_GPIO_MODE_OUT = (1<<1),
 
     /** Enable the internal pull-up resistor */
-    GPIO_PULL_UP = (1<<6),
+    EPIC_GPIO_PULL_UP = (1<<6),
     /** Enable the internal pull-down resistor */
-    GPIO_PULL_DOWN = (1<<7),
+    EPIC_GPIO_PULL_DOWN = (1<<7),
 };
 
 /**
@@ -494,7 +545,7 @@ API(API_GPIO_WRITE_PIN, int epic_gpio_write_pin(uint8_t pin, bool on));
  * :param uint8_t pin: ID of the pin to get the configuration of. Use on of the IDs defined in :c:type:`gpio_pin`.
  * :returns: ``-EINVAL`` if ``pin`` is not valid, an integer value otherwise.
  */
-API(API_GPIO_READ_PIN, uint32_t epic_gpio_read_pin(uint8_t pin));
+API(API_GPIO_READ_PIN, int epic_gpio_read_pin(uint8_t pin));
 
 /**
  * LEDs
@@ -674,6 +725,74 @@ API(API_LEDS_SET_GAMMA_TABLE, void epic_leds_set_gamma_table(
 API(API_LEDS_CLEAR_ALL, void epic_leds_clear_all(uint8_t r, uint8_t g, uint8_t b));
 
 /**
+ * BME680
+ * ======
+ *
+ * .. versionadded:: 1.4
+ */
+
+/**
+ * BME680 Sensor Data
+ */
+struct bme680_sensor_data {
+	/** Temperature in degree celsius */
+	float temperature;
+	/** Humidity in % relative humidity */
+	float humidity;
+	/** Pressure in hPa */
+	float pressure;
+	/** Gas resistance in Ohms */
+	float gas_resistance;
+};
+
+/**
+ * Initialize the BM680 sensor.
+ *
+ * .. versionadded:: 1.4
+ *
+ * :return: 0 on success or ``-Exxx`` on error.  The following
+ *     errors might occur:
+ *
+ *     - ``-EFAULT``:  On NULL-pointer.
+ *     - ``-EINVAL``:  Invalid configuration.
+ *     - ``-EIO``:  Communication with the device failed.
+ *     - ``-ENODEV``:  Device was not found.
+ */
+API(API_BME680_INIT, int epic_bme680_init());
+
+/**
+ * De-Initialize the BM680 sensor.
+ *
+ * .. versionadded:: 1.4
+ *
+ * :return: 0 on success or ``-Exxx`` on error.  The following
+ *     errors might occur:
+ *
+ *     - ``-EFAULT``:  On NULL-pointer.
+ *     - ``-EINVAL``:  Invalid configuration.
+ *     - ``-EIO``:  Communication with the device failed.
+ *     - ``-ENODEV``:  Device was not found.
+ */
+API(API_BME680_DEINIT, int epic_bme680_deinit());
+
+/**
+ * Get the current BME680 data.
+ *
+ * .. versionadded:: 1.4
+ *
+ * :param data: Where to store the environmental data.
+ * :return: 0 on success or ``-Exxx`` on error.  The following
+ *     errors might occur:
+ *
+ *     - ``-EFAULT``:  On NULL-pointer.
+ *     - ``-EINVAL``:  Sensor not initialized.
+ *     - ``-EIO``:  Communication with the device failed.
+ *     - ``-ENODEV``:  Device was not found.
+ */
+API(API_BME680_GET_DATA,
+	int epic_bme680_read_sensors(struct bme680_sensor_data *data));
+
+/**
  * Personal State
  * ==============
  * Card10 can display your personal state.
@@ -794,6 +913,181 @@ API(API_PERSONAL_STATE_IS_PERSISTENT, int epic_personal_state_is_persistent());
  *    }
  */
 API(API_STREAM_READ, int epic_stream_read(int sd, void *buf, size_t count));
+
+/**
+ * BHI160 Sensor Fusion
+ * ====================
+ * card10 has a BHI160 onboard which is used as an IMU.  BHI160 exposes a few
+ * different sensors which can be accessed using Epicardium API.
+ *
+ * .. versionadded:: 1.4
+ *
+ * **Example**:
+ *
+ * .. code-block:: cpp
+ *
+ *    #include "epicardium.h"
+ *
+ *    // Configure a sensor & enable it
+ *    struct bhi160_sensor_config cfg = {0};
+ *    cfg.sample_buffer_len = 40;
+ *    cfg.sample_rate = 4;   // Hz
+ *    cfg.dynamic_range = 2; // g
+ *
+ *    int sd = epic_bhi160_enable_sensor(BHI160_ACCELEROMETER, &cfg);
+ *
+ *    // Read sensor data
+ *    while (1) {
+ *            struct bhi160_data_vector buf[10];
+ *
+ *            int n = epic_stream_read(sd, buf, sizeof(buf));
+ *
+ *            for (int i = 0; i < n; i++) {
+ *                    printf("X: %6d Y: %6d Z: %6d\n",
+ *                           buf[i].x,
+ *                           buf[i].y,
+ *                           buf[i].z);
+ *            }
+ *    }
+ *
+ *    // Disable the sensor
+ *    epic_bhi160_disable_sensor(BHI160_ACCELEROMETER);
+ */
+
+/**
+ * BHI160 Sensor Types
+ * -------------------
+ */
+
+/**
+ * BHI160 virtual sensor type.
+ */
+enum bhi160_sensor_type {
+	/**
+	 * Accelerometer
+	 *
+	 * - Data type: :c:type:`bhi160_data_vector`
+	 * - Dynamic range: g's (1x Earth Gravity, ~9.81m*s^-2)
+	 */
+	BHI160_ACCELEROMETER               = 0,
+	/** Magnetometer (**Unimplemented**) */
+	BHI160_MAGNETOMETER                = 1,
+	/** Orientation */
+	BHI160_ORIENTATION                 = 2,
+	/** Gyroscope */
+	BHI160_GYROSCOPE                   = 3,
+	/** Gravity (**Unimplemented**) */
+	BHI160_GRAVITY                     = 4,
+	/** Linear acceleration (**Unimplemented**) */
+	BHI160_LINEAR_ACCELERATION         = 5,
+	/** Rotation vector (**Unimplemented**) */
+	BHI160_ROTATION_VECTOR             = 6,
+	/** Uncalibrated magnetometer (**Unimplemented**) */
+	BHI160_UNCALIBRATED_MAGNETOMETER   = 7,
+	/** Game rotation vector (whatever that is supposed to be) */
+	BHI160_GAME_ROTATION_VECTOR        = 8,
+	/** Uncalibrated gyroscrope (**Unimplemented**) */
+	BHI160_UNCALIBRATED_GYROSCOPE      = 9,
+	/** Geomagnetic rotation vector (**Unimplemented**) */
+	BHI160_GEOMAGNETIC_ROTATION_VECTOR = 10,
+};
+
+enum bhi160_data_type {
+	BHI160_DATA_TYPE_VECTOR
+};
+
+/**
+ * BHI160 Sensor Data Types
+ * ------------------------
+ */
+
+/**
+ * Vector Data.  The scaling of these values is dependent on the chosen dynamic
+ * range.  See the individual sensor's documentation for details.
+ */
+struct bhi160_data_vector {
+	enum bhi160_data_type data_type;
+
+	/** X */
+	int16_t x;
+	/** Y */
+	int16_t y;
+	/** Z */
+	int16_t z;
+	/** Status */
+	uint8_t status;
+};
+
+/**
+ * BHI160 API
+ * ----------
+ */
+
+/**
+ * Configuration for a BHI160 sensor.
+ *
+ * This struct is used when enabling a sensor using
+ * :c:func:`epic_bhi160_enable_sensor`.
+ */
+struct bhi160_sensor_config {
+	/**
+	 * Number of samples Epicardium should keep for this sensor.  Do not set
+	 * this number too high as the sample buffer will eat RAM.
+	 */
+	size_t sample_buffer_len;
+	/**
+	 * Sample rate for the sensor in Hz.  Maximum data rate is limited
+	 * to 200 Hz for all sensors though some might be limited at a lower
+	 * rate.
+	 */
+	uint16_t sample_rate;
+	/**
+	 * Dynamic range.  Interpretation of this value depends on
+	 * the sensor type.  Please refer to the specific sensor in
+	 * :c:type:`bhi160_sensor_type` for details.
+	 */
+	uint16_t dynamic_range;
+	/** Always zero. Reserved for future parameters. */
+	uint8_t _padding[8];
+};
+
+/**
+ * Enable a BHI160 virtual sensor.  Calling this funciton will instruct the
+ * BHI160 to collect data for this specific virtual sensor.  You can then
+ * retrieve the samples using :c:func:`epic_stream_read`.
+ *
+ * :param bhi160_sensor_type sensor_type: Which sensor to enable.
+ * :param bhi160_sensor_config* config: Configuration for this sensor.
+ * :returns: A sensor descriptor which can be used with
+ *    :c:func:`epic_stream_read` or a negative error value:
+ *
+ *    - ``-EBUSY``:  The BHI160 driver is currently busy with other tasks and
+ *      could not be acquired for enabling a sensor.
+ *
+ * .. versionadded:: 1.4
+ */
+API(API_BHI160_ENABLE, int epic_bhi160_enable_sensor(
+	enum bhi160_sensor_type sensor_type,
+	struct bhi160_sensor_config *config
+));
+
+/**
+ * Disable a BHI160 sensor.
+ *
+ * :param bhi160_sensor_type sensor_type: Which sensor to disable.
+ *
+ * .. versionadded:: 1.4
+ */
+API(API_BHI160_DISABLE, int epic_bhi160_disable_sensor(
+	enum bhi160_sensor_type sensor_type
+));
+
+/**
+ * Disable all BHI160 sensors.
+ *
+ * .. versionadded:: 1.4
+ */
+API(API_BHI160_DISABLE_ALL, void epic_bhi160_disable_all_sensors());
 
 /**
  * Vibration Motor
@@ -1042,6 +1336,17 @@ API(API_DISP_FRAMEBUFFER, int epic_disp_framebuffer(union disp_framebuffer *fb))
 
 
 /**
+ * Set the backlight brightness value
+ *
+ * :param brightness: brightness from 0 - 100
+ * :return: ``0`` on success or negative value in case of an error:
+ *
+ *    - ``-EBUSY``: Display was already locked from another task.
+ */
+API(API_DISP_BACKLIGHT, int epic_disp_backlight(uint16_t brightness));
+
+
+/**
  * Start continuous readout of the light sensor. Will read light level
  * at preconfigured interval and make it available via `epic_light_sensor_get()`.
  *
@@ -1272,6 +1577,13 @@ API(API_FILE_MKDIR, int epic_file_mkdir(const char *dirname));
  * :return: Unix time in seconds
  */
 API(API_RTC_GET_SECONDS, uint32_t epic_rtc_get_seconds(void));
+
+/**
+ * Read the current RTC value in ms.
+ *
+ * :return: Unix time in milliseconds
+ */
+API(API_RTC_GET_MILLISECONDS, uint64_t epic_rtc_get_milliseconds(void));
 
 /**
  * Sets the current RTC time in milliseconds

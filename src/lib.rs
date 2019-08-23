@@ -1,4 +1,6 @@
 #![no_std]
+#![feature(global_asm)]
+
 
 pub mod buttons;
 pub mod display;
@@ -8,7 +10,9 @@ mod sys;
 
 use arrayvec::ArrayString;
 
-use panic_halt as _;
+use panic_abort as _;
+
+global_asm!(include_str!("crt.s"));
 
 #[macro_export]
 macro_rules! main {
