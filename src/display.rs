@@ -27,7 +27,7 @@ impl Display {
     /// Opens the display. Will fail if the display can't be locked
     pub fn open() -> Result<Display> {
         unsafe {
-            let result = epicardium_sys::epic_disp_open();
+            let result = sys::epic_disp_open();
             if result != 0 {
                 return Err(Error::DeviceOrResourceBusy);
             }
@@ -46,7 +46,7 @@ impl Display {
                 self.state = State::Closed;
 
                 unsafe {
-                    epicardium_sys::epic_disp_close();
+                    sys::epic_disp_close();
                 }
             }
             State::Closed => {}
@@ -60,7 +60,7 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
-                let result = epicardium_sys::epic_disp_update();
+                let result = sys::epic_disp_update();
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -80,7 +80,7 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
-                let result = epicardium_sys::epic_disp_clear(
+                let result = sys::epic_disp_clear(
                     col.unwrap_or(Color { r: 0, g: 0, b: 0 }).rgb565(),
                 );
                 if result != 0 {
@@ -106,7 +106,7 @@ impl Display {
             }
             State::Opened => unsafe {
                 let text = create_nullterminated_str(text);
-                let result = epicardium_sys::epic_disp_print(
+                let result = sys::epic_disp_print(
                     posx,
                     posy,
                     text.as_ptr(),
@@ -137,7 +137,7 @@ impl Display {
                 return Err(Error::DisplayClosed);
             }
             State::Opened => unsafe {
-                let result = epicardium_sys::epic_disp_pixel(x, y, col.rgb565());
+                let result = sys::epic_disp_pixel(x, y, col.rgb565());
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -176,12 +176,12 @@ impl Display {
             }
             State::Opened => unsafe {
                 let linestyle = if dotted {
-                    epicardium_sys::disp_linestyle_LINESTYLE_FULL
+                    sys::disp_linestyle_LINESTYLE_FULL
                 } else {
-                    epicardium_sys::disp_linestyle_LINESTYLE_DOTTED
+                    sys::disp_linestyle_LINESTYLE_DOTTED
                 };
                 let result =
-                    epicardium_sys::epic_disp_line(xs, ys, ye, ye, col.rgb565(), linestyle, size);
+                    sys::epic_disp_line(xs, ys, ye, ye, col.rgb565(), linestyle, size);
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -221,12 +221,12 @@ impl Display {
             }
             State::Opened => unsafe {
                 let fillstyle = if filled {
-                    epicardium_sys::disp_fillstyle_FILLSTYLE_FILLED
+                    sys::disp_fillstyle_FILLSTYLE_FILLED
                 } else {
-                    epicardium_sys::disp_fillstyle_FILLSTYLE_EMPTY
+                    sys::disp_fillstyle_FILLSTYLE_EMPTY
                 };
                 let result =
-                    epicardium_sys::epic_disp_rect(xs, ys, ye, ye, col.rgb565(), fillstyle, size);
+                    sys::epic_disp_rect(xs, ys, ye, ye, col.rgb565(), fillstyle, size);
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }
@@ -264,12 +264,12 @@ impl Display {
             }
             State::Opened => unsafe {
                 let fillstyle = if filled {
-                    epicardium_sys::disp_fillstyle_FILLSTYLE_FILLED
+                    sys::disp_fillstyle_FILLSTYLE_FILLED
                 } else {
-                    epicardium_sys::disp_fillstyle_FILLSTYLE_EMPTY
+                    sys::disp_fillstyle_FILLSTYLE_EMPTY
                 };
                 let result =
-                    epicardium_sys::epic_disp_circ(x, y, rad, col.rgb565(), fillstyle, size);
+                    sys::epic_disp_circ(x, y, rad, col.rgb565(), fillstyle, size);
                 if result != 0 {
                     return Err(Error::DeviceOrResourceBusy);
                 }

@@ -4,6 +4,8 @@
 ///
 ///
 
+use crate::sys;
+
 ///  Bottom left button (bit 0).
 pub const LEFT_BOTTOM: u8 = 1;
 
@@ -48,5 +50,5 @@ pub const RESET: u8 = 8;
 ///    }
 /// ```
 pub fn read(mask: u8) -> u8 {
-    unsafe { epicardium_sys::epic_buttons_read(mask) }
+    unsafe { sys::epic_buttons_read(mask) }
 }

@@ -11,7 +11,7 @@ use super::*;
 ///  This function will never return.
 pub fn exit(ret: Option<i32>) {
     unsafe {
-        epicardium_sys::epic_exit(ret.unwrap_or(0));
+        sys::epic_exit(ret.unwrap_or(0));
     }
 }
 
@@ -27,13 +27,13 @@ pub fn exit(ret: Option<i32>) {
 pub fn exec(name: &str) -> Result<()> {
     let mut name = create_nullterminated_str(name);
     unsafe {
-        let result = epicardium_sys::epic_exec(name.as_mut_ptr());
+        let result = sys::epic_exec(name.as_mut_ptr());
         if result >= 0 {
             Ok(())
         } else {
             match (-result) as u32 {
-                epicardium_sys::ENOENT => Err(Error::FileNotFound),
-                epicardium_sys::ENOEXEC => Err(Error::FileNotInLoadableFormat),
+                sys::ENOENT => Err(Error::FileNotFound),
+                sys::ENOEXEC => Err(Error::FileNotInLoadableFormat),
                 _ => Err(Error::UnknownError),
             }
         }

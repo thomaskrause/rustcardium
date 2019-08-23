@@ -1,6 +1,16 @@
-[workspace]
-members = [
-    "rustcardium",
-    "epicardium-sys",
+[package]
+name = "epicardium"
+version = "0.0.0"
+authors = ["Thomas Krause <thomaskrause@posteo.de>"]
+edition = "2018"
+build = "build.rs"  
 
-]
+[dependencies]
+cty = "0.2"
+arrayvec = {version = "0.4", default-features = false}
+panic-halt = "0.2.0"
+
+[build-dependencies]
+bindgen = "0.51"
+
+
