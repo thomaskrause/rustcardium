@@ -9,9 +9,10 @@ use super::*;
 ///
 /// # Returns
 ///  This function will never return.
-pub fn exit(ret: Option<i32>) {
+pub fn exit(ret: Option<i32>) -> ! {
     unsafe {
         sys::epic_exit(ret.unwrap_or(0));
+        unreachable!()
     }
 }
 

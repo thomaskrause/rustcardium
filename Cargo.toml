@@ -5,7 +5,10 @@ authors = ["Thomas Krause <thomaskrause@posteo.de>"]
 edition = "2018"
 build = "build.rs"  
 
+panic = "abort"
+
 [dependencies]
+r0 = "0.2"
 cty = "0.2"
 arrayvec = {version = "0.4", default-features = false}
 panic-halt = "0.2.0"

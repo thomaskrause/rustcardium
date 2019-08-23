@@ -10,6 +10,43 @@ use arrayvec::ArrayString;
 
 use panic_halt as _;
 
+#[macro_export]
+macro_rules! main {
+    ($path:path) => {
+        #[export_name = "main"]
+        pub unsafe fn __main() {
+            // type check the given path
+            let f: fn() = $path;
+
+            f()
+        }
+    };
+}
+
+#[link_section = ".text.boot"]
+#[no_mangle]
+pub unsafe extern "C" fn Reset_Handler() -> ! {
+    extern "C" {
+        fn SystemInit();
+        // Boundaries of the .bss section, provided by the linker script
+        static mut __bss_start: u64;
+        static mut __bss_end: u64;
+    }
+
+    // Zeroes the .bss section
+    r0::zero_bss(&mut __bss_start, &mut __bss_end);
+    SystemInit();
+
+    extern "Rust" {
+        fn main();
+    }
+
+    main();
+    os::exit(Some(0));
+}
+
+pub const UART: uart::Uart = uart::Uart;
+
 /// Representation of a RGB color value.
 pub struct Color {
     pub r: u8,
