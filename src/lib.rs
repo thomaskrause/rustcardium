@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(global_asm)]
 
+pub mod bhi160;
 pub mod buttons;
 pub mod display;
 pub mod os;
